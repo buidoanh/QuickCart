@@ -1,4 +1,6 @@
 import express from 'express';
+import { readConfig } from './config.js';
+import { connectDatabase } from './database.js';
 import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
@@ -9,6 +11,21 @@ import { contactMailConfigured, sendContactNotification } from './mail.js';
 import { clerkAuth } from './auth.js';
 import { upload, uploadImages, cleanupImages } from './upload.js';
 import { objectId, productInput, addressInput, cartInput, checkoutInput, quoteInput, newsletterInput, contactInput, statusInput, calculateTotals, fail } from './validation.js';
+
+let vercelApp;
+
+// Vercel invokes this entrypoint without starting a local HTTP listener.
+export default async function handler(req, res) {
+  try {
+    const config = readConfig();
+    await connectDatabase(config.mongoUri);
+    vercelApp ||= createApp(config);
+  } catch (error) {
+    console.error(`Backend startup failed (${error.code || error.name})`);
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable' });
+  }
+  return vercelApp(req, res);
+}
 
 // Dependencies can be replaced only by the in-process test harness, never by HTTP input.
 export function createApp(config, dependencies = {}) {
