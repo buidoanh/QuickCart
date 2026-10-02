@@ -1,0 +1,6 @@
+import Image from 'next/image';
+import Link from 'next/link';
+import { assets } from '@/assets/assets';
+export default function Footer() {
+  return <footer className="border-t border-gray-200"><div className="grid md:grid-cols-[2fr_1fr_1fr] gap-10 px-6 md:px-16 lg:px-32 py-12 max-w-[1600px] mx-auto"><div><Link href="/" aria-label="Trang chủ QuickCart"><Image className="w-28 md:w-32" src={assets.logo} alt="QuickCart" /></Link><p className="mt-5 text-sm leading-7 text-gray-500 max-w-sm">Công nghệ cho cuộc sống hằng ngày. Khám phá sản phẩm phù hợp với giá rõ ràng bằng VND và mua sắm dễ dàng.</p></div><div><h2 className="font-medium text-gray-900 mb-4">QuickCart</h2><ul className="text-sm text-gray-500 space-y-3">{[['/',"Trang chủ"],['/all-products',"Cửa hàng"],['/about',"Về chúng tôi"],['/contact',"Liên hệ"]].map(([href,label])=><li key={href}><Link href={href} className="hover:text-orange-600">{label}</Link></li>)}</ul></div><div><h2 className="font-medium text-gray-900 mb-4">Bạn cần hỗ trợ?</h2><p className="text-sm text-gray-500 leading-6">Liên hệ chúng tôi nếu bạn có câu hỏi về sản phẩm hoặc đơn hàng.</p><Link href="/contact" className="inline-block text-sm text-orange-600 mt-4">Gửi tin nhắn &rarr;</Link></div></div><p className="border-t border-gray-200 py-5 text-center text-xs text-gray-500">&copy; QuickCart. Bảo lưu mọi quyền.</p></footer>;
+}

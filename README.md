@@ -1,69 +1,155 @@
-# QuickCart - A simple eCommerce website
+# QuickCart
 
-QuickCart is an open-source **Next.js eCommerce frontend** project.  
-It provides a modern, fast and customizable shopping UI.  
-This repo is **frontend only** – contributors can improve the design, add new pages, animations and more.
+Ứng dụng bán hàng tách riêng **client (Next.js)** và **server (Express + MongoDB)**, mỗi bên là một project độc lập, có dependency và lockfile riêng.
 
----
+## Cấu trúc
 
-## Features
+```text
+QuickCart/
+├── client/                  # Frontend độc lập
+│   ├── app/
+│   ├── components/
+│   ├── context/
+│   ├── lib/
+│   ├── assets/
+│   ├── public/
+│   ├── node_modules/
+│   ├── package.json
+│   ├── package-lock.json
+│   └── .env
+├── server/                  # Backend độc lập
+│   ├── src/
+│   ├── tests/
+│   ├── node_modules/
+│   ├── package.json
+│   ├── package-lock.json
+│   └── .env
+└── README.md
+```
 
--   Built with **Next.js + Tailwind CSS**
--   Responsive design
--   Reusable components
--   Customizable layouts and colors
--   Open for contributions (UI/UX, animations, themes, layouts etc.)
+## Cài đặt
 
----
+Yêu cầu Node.js >= 22.12, MongoDB Atlas hoặc MongoDB replica set (để tạo đơn và xóa giỏ trong cùng transaction), tài khoản Clerk. Cloudinary dùng cho upload sản phẩm.
 
-## Getting Started
+```powershell
+npm install --prefix client
+npm install --prefix server
+```
 
-1. Clone the repo
+Hai ứng dụng đọc file môi trường riêng. Điền trực tiếp `client/.env` và `server/.env` theo các biến bên dưới.
 
-    ```bash
-    git clone https://github.com/GreatStackDev/QuickCart.git
-    cd QuickCart
-    ```
+`client/.env`:
 
-2. Install dependencies
+```dotenv
+NEXT_PUBLIC_CURRENCY=VND
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_<your_key>
+CLERK_SECRET_KEY=sk_test_<your_key>
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
 
-    ```bash
-    npm install
-    ```
+`server/.env`:
 
-3. Run locally
+```dotenv
+PORT=4000
+CLIENT_ORIGIN=http://localhost:3000
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>/quickcart
+CLERK_PUBLISHABLE_KEY=pk_test_<same_key_as_client>
+CLERK_SECRET_KEY=sk_test_<your_key>
+CLOUDINARY_CLOUD_NAME=<your_cloud_name>
+CLOUDINARY_API_KEY=<your_api_key>
+CLOUDINARY_API_SECRET=<your_api_secret>
+```
 
-    ```bash
-    npm run dev
-    ```
+Clerk public/secret key phải thuộc cùng ứng dụng. Trong `client/.env`, `CLERK_SECRET_KEY` dành riêng cho middleware chạy phía server của Next.js; không có tiền tố `NEXT_PUBLIC_` và không được đưa vào mã trình duyệt. MongoDB và Cloudinary chỉ nằm trong `server/.env`. Inngest chưa được dùng; tạo đơn hiện thực hiện trực tiếp bằng transaction.
 
----
+## Lệnh chạy
 
-## Contributing
+Mở hai terminal riêng.
 
-We welcome all kinds of contributions! You can:
+Frontend:
+```powershell
+cd D:\QuickCart\client
+npm install --cache D:\npm-cache
+npm run dev
+```
 
-- Create new pages
-- Improve layouts
-- Add animations and transitions
-- Enhance responsiveness
-- Refactor components
-- Suggest new UI/UX ideas
-- Add themes or color variations
-- Introduce accessibility improvements
-- Add filtering/search features
-- Improve documentation
+Backend:
+```powershell
+cd D:\QuickCart\server
+npm install --cache D:\npm-cache
+npm run dev
+```
 
-Check out [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Nếu đã cài dependency thì chỉ cần `npm run dev`. Trên máy khác, dùng đường dẫn project thực tế và có thể bỏ tùy chọn `--cache`.
 
----
+Chạy `npm run lint`, `npm run build` trong `client/`; chạy `npm test` trong `server/`. Khi chạy production, `npm start` riêng trong mỗi thư mục (frontend cần build trước).
 
-## License
+Mỗi project có `package.json`, `package-lock.json`, `node_modules` và `.env` riêng; không dùng npm workspaces hoặc dependency ở thư mục gốc. Có thể copy riêng `client/` hoặc `server/`, cài dependency và chạy mà không cần project bên kia để khởi động. Frontend vẫn cần URL backend hợp lệ cho chức năng mua hàng.
 
-This project is licensed under the **MIT License**.
+API health: `http://localhost:4000/api/health`. Backend chỉ mở cổng sau khi kết nối DB và kiểm tra hỗ trợ transaction. Thiếu Clerk key thì client hiển thị hướng dẫn cấu hình. Sau khi sửa biến môi trường, khởi động lại dev server; với production cần build lại frontend.
 
----
+## Tài khoản và seller
 
-## 🌟 Contributors
+- Đăng ký/đăng nhập bằng nút **Sign in** của Clerk.
+- Trong Clerk Dashboard, chọn user và đặt **public metadata** thành `{ "role": "seller" }` để cấp quyền seller. Tải lại trang sau khi đổi quyền.
+- Backend kiểm tra metadata qua Clerk Backend API; gửi `role` hoặc `userId` giả từ frontend không cấp quyền.
+- Seller Dashboard hỗ trợ thêm sản phẩm với 1–4 ảnh JPEG/PNG/WebP (tối đa 5 MB/ảnh), sửa thông tin/giá, ẩn sản phẩm và cập nhật đơn thuộc seller đó.
+- Database mới chưa có sản phẩm. Dùng tài khoản seller để thêm; frontend không tự chèn dữ liệu mẫu.
 
-Thanks to everyone who contributes to **QuickCart**!
+## Luồng mua hàng
+
+1. Xem sản phẩm công khai, đăng nhập để thêm vào giỏ. Giỏ lưu theo Clerk user ID trong MongoDB.
+2. Lưu và chọn địa chỉ giao hàng.
+3. Đăng ký newsletter bằng email chính của tài khoản để dùng `WELCOME20` giảm 20%. Mã hiện dùng lại được, chưa giới hạn một lần.
+4. Backend đọc giá từ DB, tính giảm giá và thuế 2% bằng đơn vị đồng, làm tròn đến 1 VND. Miễn phí vận chuyển theo giao diện hiện tại.
+5. Đặt hàng **COD**, lưu bản chụp sản phẩm/địa chỉ và xóa giỏ trong một transaction. Request UUID chống tạo trùng khi retry cùng yêu cầu.
+6. Theo dõi tại **My orders**. Seller chuyển `Order Placed → Processing → Shipped → Delivered`; có thể hủy trước khi giao vận. Đơn nhiều seller giữ trạng thái riêng; toàn bộ giao thành công thì COD chuyển sang Paid.
+
+Chưa tích hợp thanh toán trực tuyến, tồn kho, email gửi ra hoặc dịch vụ vận chuyển. Newsletter chỉ lưu đăng ký, không tự gửi email. Paid là xác nhận COD từ seller, không phải xác nhận cổng thanh toán. Toàn bộ giá sử dụng VND, nhập số nguyên đồng và hiển thị theo định dạng Việt Nam (ví dụ 1.250.000 ₫). Số giá đã lưu không tự động quy đổi theo tỷ giá.
+
+## API
+
+Route riêng tư cần `Authorization: Bearer <Clerk session token>`.
+
+| Method | Route | Chức năng |
+|---|---|---|
+| GET | `/api/health` | Kiểm tra DB |
+| GET | `/api/products`, `/api/products/:id` | Sản phẩm công khai |
+| POST | `/api/newsletter` | Lưu email đăng ký |
+| GET | `/api/me` | Hồ sơ, quyền tài khoản |
+| GET, PUT | `/api/cart` | Giỏ; PUT `{productId, quantity}` |
+| GET, POST | `/api/addresses` | Địa chỉ của tài khoản |
+| DELETE | `/api/addresses/:id` | Xóa địa chỉ của tài khoản |
+| POST | `/api/orders/quote` | Tính tiền; `{promoCode}` |
+| GET, POST | `/api/orders` | Lịch sử / đặt đơn; POST `{addressId, requestId, promoCode}` |
+| GET, POST | `/api/seller/products` | Sản phẩm seller / thêm bằng multipart |
+| PATCH, DELETE | `/api/seller/products/:id` | Sửa thông tin / ẩn sản phẩm của seller |
+| GET | `/api/seller/orders` | Đơn có sản phẩm của seller |
+| PATCH | `/api/seller/orders/:id` | Chuyển trạng thái; `{status}` |
+
+PATCH sản phẩm nhận đầy đủ `name, description, category, price, offerPrice`. POST multipart thêm các trường đó và 1–4 file `images`. Danh sách sản phẩm và đơn hiện chưa phân trang, phù hợp cửa hàng nhỏ.
+
+## Kiểm tra
+
+Chạy `npm test` trong `server/`, dùng MongoDB replica set tạm của `mongodb-memory-server`, không ghi vào DB trong `.env`. Lần đầu cần mạng và dung lượng để tải binary MongoDB. Các bài kiểm tra bao gồm phân quyền, sở hữu dữ liệu, validation, tính tiền, newsletter, transaction, retry đồng thời, lịch sử và chuyển trạng thái.
+
+Clerk và Cloudinary dùng adapter giả lập trong bài kiểm tra. Cần kiểm tra đăng nhập và upload bằng dịch vụ thật sau khi điền khóa.
+
+Tài liệu tích hợp: [Clerk Express](https://clerk.com/docs/reference/express/overview), [Clerk Next.js](https://clerk.com/docs/nextjs/getting-started/quickstart).
+
+## Đóng góp và giấy phép
+
+[LICENSE.md](LICENSE.md)
+
+### Contact email delivery
+
+The contact form saves messages in MongoDB and can notify the support inbox over SMTP. Configure these keys in server/.env, then restart the backend:
+
+- SMTP_HOST: SMTP hostname (Gmail: smtp.gmail.com)
+- SMTP_PORT: 465 for implicit TLS, or 587 for STARTTLS
+- SMTP_USER: sending account email
+- SMTP_PASS: SMTP credential (for Gmail, an app password)
+- CONTACT_EMAIL: support inbox recipient
+- SMTP_FROM: optional verified sending email; defaults to SMTP_USER
+
+The customer email is used as Reply-To. Messages remain saved if delivery fails, and retrying the same request does not create a second message. Without complete SMTP configuration the form accepts and saves messages without claiming email delivery.
