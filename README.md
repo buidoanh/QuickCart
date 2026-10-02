@@ -1,5 +1,37 @@
 # QuickCart
 
+## Deploy một project với Vercel Services
+
+Import repository với **Root Directory là thư mục gốc** (để trống hoặc `.`), không chọn `client` hay `server`. File `vercel.json` ở gốc định nghĩa:
+
+- `client`: Next.js, phục vụ `/` và các đường dẫn ngoài `/api/`.
+- `server`: Express, entrypoint `src/app.js`, public tại `/api/*`. Vercel giữ nguyên tiền tố `/api`, khớp các route hiện có. Các API tài khoản vẫn yêu cầu Clerk token.
+- Binding `client → server`: Vercel tự cấp `QUICKCART_SERVER_URL`. Không tự đặt biến này, không thêm tiền tố `NEXT_PUBLIC_`.
+
+Hiện các request trong AppContext chạy ở trình duyệt, dùng `/api` cùng domain. Helper API cũng hỗ trợ gọi từ Next.js function lúc runtime qua binding; hiện chưa có luồng gọi API phía server. Không gọi helper đó trong middleware hoặc khi prerender/build, vì binding chỉ có ở runtime.
+
+Trong **Vercel Project → Settings → Environment Variables**, cấu hình cho các môi trường cần deploy:
+
+| Key | Value |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | `/api` (thay giá trị domain backend cũ nếu có) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_...` của ứng dụng Clerk |
+| `CLERK_PUBLISHABLE_KEY` | Cùng public key Clerk phía trên |
+| `CLERK_SECRET_KEY` | `sk_...` của cùng ứng dụng Clerk |
+| `MONGODB_URI` | URI MongoDB Atlas hoặc replica set |
+| `CLIENT_ORIGIN` | `https://<domain-project>`; nhiều origin phân cách bằng dấu phẩy |
+| `CLOUDINARY_CLOUD_NAME` | Cloud name để upload sản phẩm |
+| `CLOUDINARY_API_KEY` | API key Cloudinary |
+| `CLOUDINARY_API_SECRET` | API secret Cloudinary |
+
+Các biến SMTP cho form liên hệ được mô tả cuối tài liệu. Thiết lập domain ứng dụng trong Clerk theo môi trường tương ứng. Các giá trị trong bảng là placeholder; không commit secret.
+
+Kiểm tra nhiều service ở thư mục gốc bằng `vercel dev` hoặc `vercel dev --local` (không cần đăng nhập). Khi chạy kiểu này, đặt `NEXT_PUBLIC_API_URL=/api` trong `client/.env` thay cho URL localhost; Vercel tự inject binding. Khi chạy hai terminal bằng `npm run dev` như bên dưới, giữ `NEXT_PUBLIC_API_URL=http://localhost:4000/api`.
+
+Kiểm tra routing bằng `node --test client/tests/api-url.test.mjs`, lint/build bằng các lệnh bên dưới. Sau deploy kiểm tra `/`, `/api/health`, `/api/products`, đăng nhập, giỏ hàng và upload. Build thành công không thay thế kiểm tra database, Clerk và Cloudinary trên deployment thật.
+
+Tài liệu: [Vercel Services](https://vercel.com/docs/services), [routing](https://vercel.com/docs/services/routing), [bindings](https://vercel.com/docs/services/bindings).
+
 Ứng dụng bán hàng tách riêng **client (Next.js)** và **server (Express + MongoDB)**, mỗi bên là một project độc lập, có dependency và lockfile riêng.
 
 ## Cấu trúc
