@@ -80,9 +80,9 @@ const Product = () => {
                     </p>
                     <p className="text-3xl font-medium mt-6">
                         {formatCurrency(productData.offerPrice)}
-                        <span className="text-base font-normal text-gray-800/60 line-through ml-2">
+                        {productData.saleEnabled !== false && productData.offerPrice < productData.price && <span className="text-base font-normal text-gray-800/60 line-through ml-2">
                             {formatCurrency(productData.price)}
-                        </span>
+                        </span>}
                     </p>
                     <hr className="bg-gray-600 my-6" />
                     <div className="overflow-x-auto">

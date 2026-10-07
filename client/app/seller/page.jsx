@@ -22,6 +22,7 @@ const AddProduct = () => {
   const [category, setCategory] = useState('Earphone');
   const [price, setPrice] = useState('');
   const [offerPrice, setOfferPrice] = useState('');
+  const [saleEnabled, setSaleEnabled] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +31,7 @@ const AddProduct = () => {
     setSaving(true);
     try {
       const body = new FormData();
-      for (const [key, value] of Object.entries({ name, description, category, price, offerPrice })) body.append(key, value);
+      for (const [key, value] of Object.entries({ name, description, category, price, saleEnabled, ...(saleEnabled ? { offerPrice } : {}) })) body.append(key, value);
       files.filter(Boolean).forEach(file => body.append('images', file));
       await request('/seller/products', { method: 'POST', body });
       await fetchProductData(); toast.success("Đã thêm sản phẩm"); router.push('/seller/product-list');
@@ -119,7 +120,7 @@ const AddProduct = () => {
           </div>
           <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="product-price">
-              Giá gốc (VND)
+              Giá bán (VND)
             </label>
             <input
               id="product-price"
@@ -131,21 +132,30 @@ const AddProduct = () => {
               required
             />
           </div>
-          <div className="flex flex-col gap-1 w-32">
+        </div>
+        <fieldset className="rounded-lg border border-gray-200 p-4 space-y-3">
+          <legend className="px-1 font-medium">Khuyến mãi / Sale</legend>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={saleEnabled} onChange={e => setSaleEnabled(e.target.checked)} className="accent-orange-600" />
+            Bật sale cho sản phẩm này
+          </label>
+          <p className="text-sm text-gray-500">Tắt sale: sản phẩm bán theo giá thông thường, không hiện nhãn giảm giá.</p>
+          {saleEnabled && <div className="flex flex-col gap-1">
             <label className="text-base font-medium" htmlFor="offer-price">
-              Giá bán (VND)
+              Giá sale (VND)
             </label>
             <input
               id="offer-price"
               type="number" min="0" step="1"
+              max={Number(price) - 1}
               placeholder="0"
               className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
               onChange={(e) => setOfferPrice(e.target.value)}
               value={offerPrice}
               required
             />
-          </div>
-        </div>
+          </div>}
+        </fieldset>
         <button disabled={saving} type="submit" className="px-8 py-2.5 bg-orange-600 text-white font-medium rounded">
           {saving ? "Đang lưu..." : "Thêm sản phẩm"}
         </button>

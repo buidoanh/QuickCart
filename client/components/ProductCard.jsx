@@ -6,6 +6,10 @@ import { useAppContext } from '@/context/AppContext';
 const ProductCard = ({ product }) => {
 
     const { formatCurrency, router } = useAppContext()
+    const hasDiscount = product.saleEnabled !== false && product.price > 0 && product.offerPrice < product.price
+    const discountPercent = hasDiscount
+        ? Math.round((product.price - product.offerPrice) / product.price * 100)
+        : 0
 
     return (
         <div
@@ -20,6 +24,11 @@ const ProductCard = ({ product }) => {
                     width={800}
                     height={800}
                 />
+                {hasDiscount && (
+                    <span className="absolute top-2 left-2 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white">
+                        Giảm {discountPercent > 0 ? `${discountPercent}%` : '<1%'}
+                    </span>
+                )}
                 <button className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md">
                     <Image
                         className="h-3 w-3"
@@ -49,9 +58,19 @@ const ProductCard = ({ product }) => {
                 </div>
             </div>
 
-            <div className="flex items-end justify-between w-full mt-1">
-                <p className="text-base font-medium">{formatCurrency(product.offerPrice)}</p>
-                <button className=" max-sm:hidden px-4 py-1.5 text-gray-500 border border-gray-500/20 rounded-full text-xs hover:bg-slate-50 transition">
+            <div className="flex flex-wrap items-end justify-between gap-2 w-full mt-1">
+                <div className="min-w-0">
+                    <p className={`text-base font-semibold ${hasDiscount ? 'text-orange-600' : ''}`}>
+                        {formatCurrency(product.offerPrice)}
+                    </p>
+                    {hasDiscount && (
+                        <del className="block text-xs text-gray-400">
+                            <span className="sr-only">Giá gốc: </span>
+                            {formatCurrency(product.price)}
+                        </del>
+                    )}
+                </div>
+                <button className="max-sm:hidden shrink-0 px-4 py-1.5 text-gray-500 border border-gray-500/20 rounded-full text-xs hover:bg-slate-50 transition">
                     Mua ngay
                 </button>
             </div>

@@ -1,7 +1,7 @@
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { fail } from './validation.js';
-export const upload = multer({ storage: multer.memoryStorage(), limits: { files: 4, fileSize: 5 * 1024 * 1024, fields: 5, fieldSize: 10000 }, fileFilter(req, file, cb) {
+export const upload = multer({ storage: multer.memoryStorage(), limits: { files: 4, fileSize: 5 * 1024 * 1024, fields: 7, fieldSize: 10000 }, fileFilter(req, file, cb) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) return cb(Object.assign(new Error("Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP"), { status: 400 }));
   cb(null, true);
 } }).array('images', 4);

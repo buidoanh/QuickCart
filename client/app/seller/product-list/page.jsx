@@ -46,7 +46,13 @@ const ProductList = () => {
         {!error && !products.length && <p>Chưa có sản phẩm. Hãy thêm sản phẩm đầu tiên.</p>}
         {editing && <form onSubmit={saveProduct} className="border p-5 mb-6 grid gap-3 max-w-lg">
           <h3>Chỉnh sửa sản phẩm</h3>
-          {['name', 'description', 'price', 'offerPrice'].map(key => <label key={key}>{key === "price" ? "Giá gốc (VND)" : key === "offerPrice" ? "Giá bán (VND)" : ({ name: "Tên sản phẩm", description: "Mô tả" }[key] || key)}<input className="border p-2 w-full" required type={key.includes('rice') ? 'number' : 'text'} min="0" step="1" value={editing[key]} onChange={e => setEditing({ ...editing, [key]: e.target.value })} /></label>)}
+          {['name', 'description', 'price'].map(key => <label key={key}>{({ price: "Giá bán (VND)", name: "Tên sản phẩm", description: "Mô tả" }[key])}<input className="border p-2 w-full" required type={key === 'price' ? 'number' : 'text'} min="0" step="1" value={editing[key]} onChange={e => setEditing({ ...editing, [key]: e.target.value })} /></label>)}
+          <fieldset className="border rounded-lg p-3 space-y-3">
+            <legend className="px-1 font-medium">Khuyến mãi / Sale</legend>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={editing.saleEnabled} onChange={e => setEditing({ ...editing, saleEnabled: e.target.checked })} />Bật sale cho sản phẩm này</label>
+            {editing.saleEnabled && <label className="block">Giá sale (VND)<input className="border p-2 w-full" required type="number" min="0" max={Number(editing.price) - 1} step="1" value={editing.offerPrice} onChange={e => setEditing({ ...editing, offerPrice: e.target.value })} /></label>}
+            <p className="text-sm text-gray-500">Tắt sale: dùng giá bán thông thường và ẩn nhãn giảm giá.</p>
+          </fieldset>
           <label>Danh mục<select className="border p-2 w-full" value={editing.category} onChange={e => setEditing({ ...editing, category: e.target.value })}>{['Earphone','Headphone','Watch','Smartphone','Laptop','Camera','Accessories'].map(category => <option key={category} value={category}>{categoryLabel(category)}</option>)}</select></label>
           <div className="flex gap-4"><button disabled={saving} className="bg-orange-600 text-white px-4 py-2">Lưu</button><button type="button" onClick={() => setEditing(null)}>Hủy</button></div>
         </form>}
@@ -90,7 +96,7 @@ const ProductList = () => {
                         alt=""
                       />
                     </button>
-                    <button className="text-orange-600 mr-3 mt-2" onClick={() => setEditing({ ...product })}>Sửa</button>
+                    <button className="text-orange-600 mr-3 mt-2" onClick={() => setEditing({ ...product, saleEnabled: product.saleEnabled ?? product.offerPrice < product.price })}>Sửa</button>
                     <button className="text-red-600" onClick={() => removeProduct(product._id)}>Xóa</button>
                   </td>
                 </tr>

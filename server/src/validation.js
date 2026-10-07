@@ -5,8 +5,11 @@ const text = (max = 200) => z.string().trim().min(1).max(max);
 const money = z.coerce.number().finite().int("Giá VND phải là số nguyên").min(0).max(1000000000000);
 export const productInput = z.object({
   name: text(), description: text(5000), category: z.enum(['Earphone', 'Headphone', 'Watch', 'Smartphone', 'Laptop', 'Camera', 'Accessories']),
-  price: money, offerPrice: money,
-}).refine(p => p.offerPrice <= p.price, "Giá bán không được vượt giá gốc");
+  price: money, offerPrice: money.optional(),
+  saleEnabled: z.preprocess(value => value === 'true' ? true : value === 'false' ? false : value, z.boolean().default(false)),
+}).refine(p => !p.saleEnabled || (p.offerPrice !== undefined && p.offerPrice < p.price), {
+  message: "Giá sale phải thấp hơn giá bán thông thường", path: ['offerPrice'],
+}).transform(p => ({ ...p, offerPrice: p.saleEnabled ? p.offerPrice : p.price }));
 export const addressInput = z.object({ fullName: text(), phoneNumber: z.string().trim().regex(/^[+\d\s()-]{7,25}$/), pincode: text(20), area: text(500), city: text(), state: text() });
 export const cartInput = z.object({ productId: objectId, quantity: z.number().int().min(0).max(99) });
 export const checkoutInput = z.object({ addressId: objectId, requestId: z.string().uuid(), promoCode: z.string().trim().max(40).default('') });

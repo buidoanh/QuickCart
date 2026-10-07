@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { ZodError } from 'zod';
+import { registerPublicBanners, registerSellerBanners } from './banners.js';
 import { Product, Cart, Address, Order, Subscriber, ContactMessage } from './models.js';
 import { contactMailConfigured, sendContactNotification } from './mail.js';
 import { clerkAuth } from './auth.js';
@@ -38,6 +39,7 @@ export function createApp(config, dependencies = {}) {
   app.use(express.json({ limit: '100kb' }));
   app.use('/api', rateLimit({ windowMs: 60000, limit: 200, message: { success: false, message: 'Bạn gửi yêu cầu quá nhanh. Vui lòng thử lại sau.' }, standardHeaders: 'draft-8', legacyHeaders: false }));
   app.get('/api/health', (req, res) => res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({ success: mongoose.connection.readyState === 1, service: 'quickcart-api' }));
+  registerPublicBanners(app);
   app.get('/api/products', async (req, res) => {
     const products = await Product.find({ active: true }).sort({ createdAt: -1 }).lean();
     res.json({ success: true, currency: 'VND', products });
@@ -149,6 +151,7 @@ export function createApp(config, dependencies = {}) {
   app.get('/api/orders', async (req, res) => res.json({ success: true, orders: await Order.find({ userId: req.userId }).sort({ date: -1 }).lean() }));
 
   app.use('/api/seller', auth.requireSeller);
+  registerSellerBanners(app, images);
   app.get('/api/seller/products', async (req, res) => res.json({ success: true, products: await Product.find({ userId: req.userId, active: true }).sort({ createdAt: -1 }).lean() }));
   app.post('/api/seller/products', upload, async (req, res) => {
     const data = productInput.parse(req.body);

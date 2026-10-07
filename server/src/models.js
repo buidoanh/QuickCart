@@ -1,10 +1,16 @@
 import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 const options = { timestamps: true };
+export const Banner = model('Banner', new Schema({
+  slot: { type: Number, required: true, unique: true, min: 1, max: 3 },
+  title: String, offer: String, buttonText1: String, buttonText2: String,
+  image: String, enabled: Boolean, linkType: String, category: String, productId: String,
+}, options));
 export const Product = model('Product', new Schema({
   userId: { type: String, required: true, index: true },
   name: { type: String, required: true }, description: String,
   category: String, price: Number, offerPrice: Number,
+  saleEnabled: Boolean,
   currency: { type: String, enum: ['VND'], default: 'VND', immutable: true },
   image: [String], active: { type: Boolean, default: true },
 }, options));

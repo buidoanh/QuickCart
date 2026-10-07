@@ -159,11 +159,28 @@ Route riêng tư cần `Authorization: Bearer <Clerk session token>`.
 | GET | `/api/seller/orders` | Đơn có sản phẩm của seller |
 | PATCH | `/api/seller/orders/:id` | Chuyển trạng thái; `{status}` |
 
-PATCH sản phẩm nhận đầy đủ `name, description, category, price, offerPrice`. POST multipart thêm các trường đó và 1–4 file `images`. Danh sách sản phẩm và đơn hiện chưa phân trang, phù hợp cửa hàng nhỏ.
+PATCH sản phẩm nhận `name, description, category, price, saleEnabled` và `offerPrice` khi bật sale. POST multipart thêm các trường đó và 1–4 file `images`. Khi tắt sale, backend đặt giá tính tiền bằng `price`. Danh sách sản phẩm và đơn hiện chưa phân trang, phù hợp cửa hàng nhỏ.
+
+## Quản lý banner trang chủ
+
+Đăng nhập tài khoản người bán, mở **Quản lý banner** tại `/seller/banners`. Có 3 vị trí tương ứng 3 banner hiện tại, dùng chung cho toàn cửa hàng và được lưu trong MongoDB.
+
+1. Sửa tiêu đề, dòng ưu đãi và tên hai nút.
+2. Chọn đích đến của hai nút: tất cả sản phẩm, một danh mục hoặc một sản phẩm đang bán.
+3. Chọn ảnh JPG/PNG/WebP tối đa 5 MB nếu muốn thay ảnh; bỏ trống để giữ ảnh hiện tại. Ảnh mới dùng cấu hình Cloudinary của backend.
+4. Kiểm tra phần xem trước, bật/tắt **Hiển thị trên trang chủ**, rồi bấm **Lưu banner**. Tải lại trang chủ để xem thay đổi.
+
+Tắt cả 3 banner sẽ ẩn khu vực này. Dòng ưu đãi là nội dung quảng cáo, không tự áp dụng giảm giá sản phẩm. Nội dung mặc định chỉ dùng cho vị trí chưa từng được lưu.
+
+| Phương thức | API | Chức năng |
+| --- | --- | --- |
+| GET | `/api/banners` | Danh sách banner đang bật, không yêu cầu đăng nhập |
+| GET | `/api/seller/banners` | Cả 3 banner, yêu cầu quyền người bán |
+| PUT | `/api/seller/banners/:slot` | Lưu vị trí 1–3; multipart gồm trường `data` chứa JSON và tối đa 1 file `images` |
 
 ## Kiểm tra
 
-Chạy `npm test` trong `server/`, dùng MongoDB replica set tạm của `mongodb-memory-server`, không ghi vào DB trong `.env`. Lần đầu cần mạng và dung lượng để tải binary MongoDB. Các bài kiểm tra bao gồm phân quyền, sở hữu dữ liệu, validation, tính tiền, newsletter, transaction, retry đồng thời, lịch sử và chuyển trạng thái.
+Chạy `npm test` trong `server/`. Các bài kiểm tra hiện có bao gồm logic bật/tắt sale và API banner: phân quyền, lưu nội dung/liên kết, thay ảnh, validation và ẩn/hiện. API banner dùng MongoDB tạm của `mongodb-memory-server`, không ghi vào DB trong `.env`. Lần đầu cần mạng và dung lượng để tải binary MongoDB.
 
 Clerk và Cloudinary dùng adapter giả lập trong bài kiểm tra. Cần kiểm tra đăng nhập và upload bằng dịch vụ thật sau khi điền khóa.
 
